@@ -1,13 +1,18 @@
-import sublime, sublime_plugin
-import os, sys, glob
+import sublime
+import sublime_plugin
+import os
+import sys
 import subprocess
 import shlex
-import locale
+import fnmatch
 from subprocess import Popen
 
 
 bullet = u'\u2022'
+
+
 class SublimeFilesCommand(sublime_plugin.WindowCommand):
+
     def run(self, command):
         try:
             self.home
@@ -24,10 +29,18 @@ class SublimeFilesCommand(sublime_plugin.WindowCommand):
                 os.chdir(os.getenv(self.home))
             self.bookmark = None
             self.term_command = settings.get('term_command')
-            self.drives = [] # for windows machines
+            self.drives = settings.get('drives_include_patterns', [])  # for windows machines
+            self.file_exclude_patterns = settings.get("file_exclude_patterns", [])
 
         if command == 'navigate':
             self.open_navigator()
+
+    def file_match(self, filename):
+        for pattern in self.file_exclude_patterns:
+            if fnmatch.fnmatch(filename, pattern):
+                return True
+
+        return False
 
     # function for showing panel for changing directories / opening files
     def open_navigator(self):
@@ -44,10 +57,15 @@ class SublimeFilesCommand(sublime_plugin.WindowCommand):
 
         for element in os.listdir(os.getcwdu()):
             fullpath = os.path.join(os.getcwdu(), element)
+
+            if self.file_match(element):
+                continue
+
             if os.path.isdir(fullpath):
                 self.dir_files.append(element + os.sep)
             else:
                 self.dir_files.append(element)
+
         self.dir_files = self.dir_files[:4] + sorted(self.dir_files[4:], key=sort_files)
         if self.bookmark:
             self.dir_files.insert(2, bullet + ' To bookmark (' + self.bookmark + ')')
@@ -58,7 +76,7 @@ class SublimeFilesCommand(sublime_plugin.WindowCommand):
     # handles user's selection in open_navigator. cd's into new directory, opens cur dir options, or opens file
     def handle_navigator_option(self, call_value):
         if call_value != -1:
-            option = self.dir_files[call_value];
+            option = self.dir_files[call_value]
             if call_value == 0:
                 self.open_navigator()
             elif call_value == 1:
@@ -73,19 +91,19 @@ class SublimeFilesCommand(sublime_plugin.WindowCommand):
                 os.chdir(os.path.dirname(self.window.active_view().file_name()))
             elif option.startswith(bullet + ' To bookmark'):
                 os.chdir(self.bookmark)
-            else: 
+            else:
                 fullpath = os.path.join(os.getcwdu(), self.dir_files[call_value])
-                if os.path.isdir(fullpath): # navigate to directory
+                if os.path.isdir(fullpath):  # navigate to directory
                     os.chdir(self.dir_files[call_value])
-                else: # open file
+                else:  # open file
                     self.window.open_file(os.path.join(os.getcwdu(), fullpath))
                     return
             self.open_navigator()
 
     # options for when a user selects current directory
-    def open_directory_options(self): 
+    def open_directory_options(self):
         self.directory_options = [bullet + ' Add folder to project', bullet + ' Create new file',
-            bullet + ' Create new directory', bullet + ' Set bookmark here', bullet + ' Back']
+                                  bullet + ' Create new directory', bullet + ' Set bookmark here', bullet + ' Back']
         # terminal opening. only for osx/linux right now
         if os.name == 'posix' and self.term_command:
             self.directory_options.insert(0, bullet + ' Open terminal here')
@@ -144,6 +162,8 @@ def sort_files(filename):
     return total_weight
 
 # hack to add folders to sidebar (stolen from wbond)
+
+
 def get_sublime_path():
     if sublime.platform() == 'osx':
         return '/Applications/Sublime Text 2.app/Contents/SharedSupport/bin/subl'
@@ -151,6 +171,7 @@ def get_sublime_path():
         return open('/proc/self/cmdline').read().split(chr(0))[0]
     else:
         return sys.executable
+
 
 def sublime_command_line(args):
     args.insert(0, get_sublime_path())
