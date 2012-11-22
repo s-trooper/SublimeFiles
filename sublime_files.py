@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import sublime
 import sublime_plugin
 import os
@@ -5,6 +6,11 @@ import sys
 import subprocess
 import shlex
 import fnmatch
+=======
+import sublime, sublime_plugin
+import os, sys, glob
+import shlex
+>>>>>>> upstream/master
 from subprocess import Popen
 
 
@@ -175,4 +181,4 @@ def get_sublime_path():
 
 def sublime_command_line(args):
     args.insert(0, get_sublime_path())
-    return subprocess.Popen(args)
+    return Popen(args)
