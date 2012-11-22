@@ -1,16 +1,9 @@
-<<<<<<< HEAD
 import sublime
 import sublime_plugin
 import os
 import sys
-import subprocess
 import shlex
 import fnmatch
-=======
-import sublime, sublime_plugin
-import os, sys, glob
-import shlex
->>>>>>> upstream/master
 from subprocess import Popen
 
 
